@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kolej w Orzeszu – działki</title>
+<meta name="description" content="Nieoficjalne zestawienie działek w Orzeszu objętych postępowaniem lokalizacyjnym dla prac na liniach kolejowych 140 i 169: mapa, adresy i wyjaśnienia.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --text:#1d2329; --muted:#5b6670; --line:#e3e0d8;
+  --accent:#9b1c1c; --accent-soft:#fdf0ef; --note:#fff8e6; --note-line:#e9cf86;
+  --c-jas:#1f6fb4; --c-orz:#2e8b3e; --c-zaw:#e07b12; --c-adr:#d0102a;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181b; --surface:#1d2125; --text:#e7e9eb; --muted:#9aa4ad; --line:#30363c;
+    --accent:#f08a8a; --accent-soft:#2b1c1c; --note:#2a2516; --note-line:#6b5a22;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181b; --surface:#1d2125; --text:#e7e9eb; --muted:#9aa4ad; --line:#30363c;
+  --accent:#f08a8a; --accent-soft:#2b1c1c; --note:#2a2516; --note-line:#6b5a22;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:0 16px 64px}
+header{padding:40px 0 8px}
+h1{font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.2;margin:0 0 12px;letter-spacing:-.01em}
+h2{font-size:1.35rem;margin:48px 0 12px;padding-top:8px;border-top:1px solid var(--line)}
+h3{font-size:1.05rem;margin:24px 0 8px}
+p,li{max-width:72ch}
+a{color:var(--accent)}
+.lead{font-size:1.1rem;color:var(--muted);margin:0}
+.badge{display:inline-block;font-size:.8rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:4px;margin-bottom:12px}
+.note{background:var(--note);border:1px solid var(--note-line);border-radius:8px;padding:14px 18px;margin:20px 0}
+.note p{margin:.3em 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+.stat b{display:block;font-size:1.8rem;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:.9rem}
+#map{height:min(70vh,620px);border:1px solid var(--line);border-radius:8px;margin:12px 0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:.92rem;color:var(--muted);margin:8px 0}
+.legend i{display:inline-block;width:16px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.35)}
+.legend i.dash{background:transparent;border:2px dashed var(--text);height:12px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--bg);font-weight:600;position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--accent-soft)}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.warn{color:var(--accent);font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:12px 0}
+input[type=search],select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--text);min-width:0}
+input[type=search]{flex:1 1 240px}
+.count{color:var(--muted);font-size:.9rem}
+.scans{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.scans figure{margin:0}
+.scans img{width:100%;border:1px solid var(--line);border-radius:6px;background:#fff}
+.scans figcaption{font-size:.88rem;color:var(--muted)}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.88rem}
+.leaflet-popup-content{font:14px/1.5 system-ui,sans-serif}
+.leaflet-popup-content b{font-size:15px}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <span class="badge">Zestawienie nieoficjalne</span>
+  <h1>Linie kolejowe 140 i 169: działki w Orzeszu objęte inwestycją</h1>
+  <p class="lead">Mapa i wykaz działek z dwóch obwieszczeń Wojewody Śląskiego o wszczęciu postępowania lokalizacyjnego dla prac na odcinku Orzesze Jaśkowice – Tychy, z orientacyjnymi adresami.</p>
+</header>
+
+<div class="note">
+  <p><strong>To nie jest dokument urzędowy.</strong> Zestawienie przygotowała prywatna osoba na podstawie obwieszczeń i publicznych rejestrów. Może zawierać błędy, na przykład w odczycie numerów ze skanów. Wiążące są wyłącznie obwieszczenia i akta sprawy w Śląskim Urzędzie Wojewódzkim.</p>
+  <p>Adresy są <strong>orientacyjne</strong>: przypisano je na podstawie położenia punktów adresowych z rejestru PRG (GUGiK). Obwieszczenie podaje tylko numery działek, a zestawienie nie zawiera żadnych danych o właścicielach.</p>
+</div>
+
+<div class="stats">
+  <div class="stat"><b>194</b><span>działki w Orzeszu</span></div>
+  <div class="stat"><b>77</b><span>działek podlega podziałowi</span></div>
+  <div class="stat"><b>24</b><span>działki z adresem (25 numerów)</span></div>
+  <div class="stat"><b>3</b><span>obręby: Jaśkowice, Orzesze, Zawiść</span></div>
+</div>
+
+<h2 id="postepowanie">O co chodzi w postępowaniu</h2>
+<p>Na wniosek PKP Polskie Linie Kolejowe S.A. Wojewoda Śląski wszczął postępowanie w sprawie wydania <strong>decyzji o ustaleniu lokalizacji linii kolejowej</strong> na podstawie tzw. specustawy kolejowej (ustawa z 28 marca 2003 r. o transporcie kolejowym, art. 9o). Inwestycja nosi nazwę „Prace na liniach kolejowych nr 140 i 169 na odcinku Orzesze Jaśkowice – Tychy”.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Znak sprawy</th><th>Data obwieszczenia</th><th>Zakres</th><th>Obręby w Orzeszu</th></tr></thead>
+  <tbody style="cursor:auto">
+    <tr><td class="num">IFXIII.747.33.2026</td><td>23 października 2026</td><td>linia 169, km 9,394–15,490</td><td>Orzesze, Zawiść</td></tr>
+    <tr><td class="num">IFXIII.747.35.2026</td><td>3 listopada 2026</td><td>linia 140, km 19,640–23,425; linia 169, km 15,483–17,484</td><td>Jaśkowice</td></tr>
+  </tbody>
+</table></div>
+
+<h3>Co oznacza obecność działki na liście</h3>
+<ul>
+  <li>Działka leży w całości lub w części na terenie, którego dotyczy wniosek o decyzję lokalizacyjną.</li>
+  <li><strong>Działki podkreślone w obwieszczeniu podlegają podziałowi.</strong> Inwestycja obejmie tylko część takiej działki, a reszta zostanie wydzielona jako osobna działka. Na mapie mają przerywany obrys.</li>
+  <li>Pozostałe działki obwieszczenie wymienia bez podziału. Wiele z nich to tereny kolejowe, drogi i lasy.</li>
+  <li>Sama obecność adresu na liście nie oznacza, że budynek zostanie rozebrany. Co dokładnie dzieje się z konkretną działką, wynika z map i projektu w aktach sprawy.</li>
+</ul>
+
+<h3>Co można zrobić</h3>
+<ul>
+  <li>Zapoznać się z aktami sprawy w budynku Śląskiego Urzędu Wojewódzkiego w Katowicach, ul. Jagiellońska 25. Termin trzeba wcześniej uzgodnić z pracownikiem prowadzącym postępowanie, tel. <a href="tel:+48322077522">32 20 77 522</a>.</li>
+  <li>Wypowiedzieć się co do zebranych dowodów i materiałów oraz złożyć wnioski i zastrzeżenia <strong>w terminie 21 dni od dnia opublikowania obwieszczenia</strong>. Po tym terminie sprawa zostanie rozpatrzona na podstawie zebranych materiałów.</li>
+  <li>W przypadku wątpliwości co do własnej sytuacji warto zasięgnąć porady prawnej. To zestawienie nią nie jest.</li>
+</ul>
+
+<h2 id="mapa">Mapa</h2>
+<div class="legend">
+  <span><i style="background:var(--c-jas)"></i>obręb Jaśkowice</span>
+  <span><i style="background:var(--c-orz)"></i>obręb Orzesze</span>
+  <span><i style="background:var(--c-zaw)"></i>obręb Zawiść</span>
+  <span><i style="background:var(--c-adr)"></i>działka z adresem</span>
+  <span><i class="dash"></i>działka podlegająca podziałowi</span>
+</div>
+<div id="map" role="region" aria-label="Mapa działek"></div>
+<p class="count">Kliknij działkę na mapie albo wiersz w tabeli, aby zobaczyć szczegóły.</p>
+
+<h2 id="adresy">Działki z adresem</h2>
+<p>Te działki mają w granicach punkt adresowy z rejestru PRG. Każdy adres sprawdzono w geokoderze GUGiK, w ewidencji budynków i w OpenStreetMap. Dwa adresy mają rozbieżności, opisane w kolumnie „Uwagi”.</p>
+<div class="tablewrap"><table id="tAdr">
+  <thead><tr><th>Adres</th><th>Działka</th><th>Obręb, arkusz</th><th>Podział</th><th>Uwagi</th></tr></thead>
+  <tbody></tbody>
+</table></div>
+
+<h2 id="wszystkie">Wszystkie działki</h2>
+<p>Działkom bez adresu przypisano najbliższą ulicę, jeśli jej oś leży w odległości do 60 m. Ulica jest więc tylko wskazówką, gdzie szukać działki, a nie jej adresem.</p>
+<div class="controls">
+  <input type="search" id="q" placeholder="Szukaj: numer działki, ulica, adres…" aria-label="Szukaj">
+  <select id="fOb" aria-label="Obręb"><option value="">Wszystkie obręby</option><option>Jaśkowice</option><option>Orzesze</option><option>Zawiść</option></select>
+  <select id="fPod" aria-label="Podział"><option value="">Z podziałem i bez</option><option value="1">Tylko z podziałem</option><option value="0">Tylko bez podziału</option></select>
+  <span class="count" id="cnt"></span>
+</div>
+<div class="tablewrap" style="max-height:560px"><table id="tAll">
+  <thead><tr><th>Działka</th><th>Obręb</th><th>Arkusz</th><th>Podział</th><th>Adres / najbliższa ulica</th><th>Pow. [m²]</th></tr></thead>
+  <tbody></tbody>
+</table></div>
+<p class="count">Dane do pobrania: <a href="dane/dzialki.csv">CSV</a> · <a href="dane/dzialki.geojson">GeoJSON</a></p>
+
+<h2 id="obwieszczenia">Skany obwieszczeń</h2>
+<div class="scans">
+  <figure><a href="obwieszczenia/IFXIII.747.33.2026-strona-1.jpeg"><img src="obwieszczenia/IFXIII.747.33.2026-strona-1.jpeg" alt="Obwieszczenie IFXIII.747.33.2026, strona 1" loading="lazy"></a><figcaption>IFXIII.747.33.2026, strona 1</figcaption></figure>
+  <figure><a href="obwieszczenia/IFXIII.747.33.2026-strona-2.jpeg"><img src="obwieszczenia/IFXIII.747.33.2026-strona-2.jpeg" alt="Obwieszczenie IFXIII.747.33.2026, strona 2" loading="lazy"></a><figcaption>IFXIII.747.33.2026, strona 2</figcaption></figure>
+  <figure><a href="obwieszczenia/IFXIII.747.35.2026-strona-1.jpeg"><img src="obwieszczenia/IFXIII.747.35.2026-strona-1.jpeg" alt="Obwieszczenie IFXIII.747.35.2026, strona 1" loading="lazy"></a><figcaption>IFXIII.747.35.2026, strona 1 (część dotycząca działek)</figcaption></figure>
+</div>
+
+<h2 id="metoda">Skąd pochodzą dane</h2>
+<ol>
+  <li>Numery działek odczytano ze skanów obwieszczeń, razem z informacją, które są podkreślone.</li>
+  <li>Granice działek pobrano z usługi ULDK (Główny Urząd Geodezji i Kartografii).</li>
+  <li>Adresy przypisano na podstawie punktów adresowych z Państwowego Rejestru Granic (PRG, GUGiK), stan z 17 listopada 2026 r.</li>
+  <li>Adresy zweryfikowano geokoderem GUGiK, warstwą budynków ULDK i danymi OpenStreetMap.</li>
+</ol>
+<h3>Ograniczenia</h3>
+<ul>
+  <li>Budynek, którego punkt adresowy leży na sąsiedniej działce, nie pojawia się w tabeli adresów, nawet jeśli jego posesja częściowo wchodzi w zakres inwestycji.</li>
+  <li>Działki 830/375 i 991/374 według obwieszczenia leżą na arkuszu 5 obrębu Orzesze, a według ewidencji na arkuszu 2. Przyjęto dane z ewidencji.</li>
+  <li>Strona z obwieszczeniem IFXIII.747.35.2026 obejmuje tylko wykaz działek. Pozostałe strony tego dokumentu nie zostały tu zamieszczone.</li>
+</ul>
+
+<footer>
+  <p>Opracowanie: 17 listopada 2026 r. Zestawienie nieoficjalne, udostępnione w dobrej wierze, bez gwarancji kompletności i poprawności.</p>
+  <p>Źródła danych: Główny Urząd Geodezji i Kartografii (ULDK, PRG). Podkład mapy: © współtwórcy <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> (ODbL).</p>
+</footer>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="dzialki.js"></script>
+<script>
+(function(){
+  var F = window.DZIALKI.features;
+  var css = getComputedStyle(document.documentElement);
+  var COL = {"Jaśkowice":css.getPropertyValue('--c-jas').trim(),"Orzesze":css.getPropertyValue('--c-orz').trim(),"Zawiść":css.getPropertyValue('--c-zaw').trim()};
+  var ADR = css.getPropertyValue('--c-adr').trim();
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function style(f){
+    var p=f.properties, has=p.adresy.length>0;
+    return {color:has?ADR:COL[p.obreb], weight:p.podzial?2.5:1.2, dashArray:p.podzial?"6 4":null,
+            fillColor:has?ADR:COL[p.obreb], fillOpacity:has?0.65:0.4, opacity:0.95};
+  }
+  function popup(p){
+    var h='<b>Działka '+esc(p.nr)+'</b><br>obręb '+esc(p.obreb)+', arkusz '+esc(p.arkusz)+'<br>';
+    h+= p.podzial ? 'podlega podziałowi<br>' : 'bez podziału<br>';
+    if(p.adresy.length) h+='adres: <b>'+p.adresy.map(esc).join(', ')+'</b><br>';
+    else if(p.ulica) h+='najbliższa ulica: '+esc(p.ulica)+'<br>';
+    h+='powierzchnia ok. '+p.pow.toLocaleString('pl-PL')+' m²';
+    if(p.uwagi) h+='<br><span class="warn">Uwaga:</span> '+esc(p.uwagi);
+    return h;
+  }
+  var map=L.map('map',{scrollWheelZoom:false});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+  var layers={};
+  var gl=L.geoJSON(window.DZIALKI,{style:style,onEachFeature:function(f,l){
+    var p=f.properties; layers[p.obreb+'|'+p.arkusz+'|'+p.nr]=l; l.bindPopup(popup(p));
+  }}).addTo(map);
+  map.fitBounds(gl.getBounds(),{padding:[10,10]});
+  map.on('click',function(){map.scrollWheelZoom.enable();});
+  function show(k){var l=layers[k]; if(!l) return; document.getElementById('map').scrollIntoView({behavior:'smooth',block:'center'});
+    map.fitBounds(l.getBounds(),{maxZoom:18,padding:[40,40]}); l.openPopup();}
+
+  // tabela adresów
+  var key=function(s){var m=String(s).match(/\d+/);return m?+m[0]:0;};
+  var rows=[];
+  F.forEach(function(f){var p=f.properties; p.adresy.forEach(function(a){rows.push({a:a,p:p});});});
+  rows.sort(function(x,y){var sx=x.a.replace(/\s\S+$/,''), sy=y.a.replace(/\s\S+$/,''); return sx.localeCompare(sy,'pl')||key(x.a.split(' ').pop())-key(y.a.split(' ').pop())||x.a.localeCompare(y.a,'pl');});
+  var tb=document.querySelector('#tAdr tbody');
+  rows.forEach(function(r){var p=r.p, tr=document.createElement('tr');
+    tr.innerHTML='<td><b>'+esc(r.a)+'</b></td><td class="num">'+esc(p.nr)+'</td><td>'+esc(p.obreb)+', AM '+esc(p.arkusz)+'</td><td>'+(p.podzial?'tak':'nie')+'</td><td>'+(p.uwagi?'<span class="warn">Rozbieżność.</span> '+esc(p.uwagi):'potwierdzony')+'</td>';
+    tr.onclick=function(){show(p.obreb+'|'+p.arkusz+'|'+p.nr);}; tb.appendChild(tr);});
+
+  // wszystkie działki
+  var all=F.map(function(f){return f.properties;}).sort(function(a,b){return a.obreb.localeCompare(b.obreb,'pl')||(+a.arkusz)-(+b.arkusz)||key(a.nr)-key(b.nr)||a.nr.localeCompare(b.nr);});
+  var tA=document.querySelector('#tAll tbody'), q=document.getElementById('q'), fOb=document.getElementById('fOb'), fPod=document.getElementById('fPod'), cnt=document.getElementById('cnt');
+  function render(){
+    var s=q.value.trim().toLowerCase(), ob=fOb.value, pd=fPod.value, n=0, html=[];
+    all.forEach(function(p,i){
+      var where=p.adresy.length? p.adresy.join(', ') : (p.ulica?'przy ul. '+p.ulica:'—');
+      var hay=(p.nr+' '+p.obreb+' '+where).toLowerCase();
+      if(s && hay.indexOf(s)<0) return; if(ob && p.obreb!==ob) return; if(pd && String(+p.podzial)!==pd) return;
+      n++; html.push('<tr data-i="'+i+'"><td class="num"><b>'+esc(p.nr)+'</b></td><td>'+esc(p.obreb)+'</td><td class="num">'+esc(p.arkusz)+'</td><td>'+(p.podzial?'tak':'nie')+'</td><td>'+(p.adresy.length?'<b>'+esc(where)+'</b>':esc(where))+(p.uwagi?' <span class="warn" title="'+esc(p.uwagi)+'">(!)</span>':'')+'</td><td class="num">'+p.pow.toLocaleString('pl-PL')+'</td></tr>');
+    });
+    tA.innerHTML=html.join(''); cnt.textContent=n+' z '+all.length+' działek';
+  }
+  tA.addEventListener('click',function(e){var tr=e.target.closest('tr'); if(!tr) return; var p=all[+tr.dataset.i]; show(p.obreb+'|'+p.arkusz+'|'+p.nr);});
+  [q,fOb,fPod].forEach(function(el){el.addEventListener('input',render);});
+  render();
+})();
+</script>
+</body>
+</html>
